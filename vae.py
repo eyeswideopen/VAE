@@ -1,12 +1,11 @@
 #All Imports
 import sys
-!{sys.executable} -m pip install imageio
 import numpy as np
 import imageio
 import os.path
 import scipy
 import tensorflow as tf
-import matplotlib.pyplot as pyplot
+import matplotlib.pyplot as plt
 
 
 #os.environ["CUDA_VISIBLE_DEVICES"]="4"
@@ -16,16 +15,13 @@ print(device_lib.list_local_devices())
 
 orderedFiles = "/data/master_thesis_koerner/master_thesis/data/bones/raw/labels"
 
-#Bilder_liste = [f for f in sorted(os.listdir(orderedFiles)) if isfile(join(orderedFiles, f)) and "image" in f]
 segmentierung_liste = [f for f in sorted(os.listdir(orderedFiles)) if os.path.isfile(os.path.join(orderedFiles, f)) and ".png" in f]
-#print(len(segmentierung_liste))
+print("Number of input images found: " + str(len(segmentierung_liste)))
 
 labels = np.random.randint(5, size=len(segmentierung_liste))
 
-
-image_size = 256
-
-
+#input image dimensions (square)
+image_size = 160
 
 def next_batch(num, data, labels):
     '''
@@ -56,7 +52,6 @@ def next_batch(num, data, labels):
 tf.reset_default_graph()
 
 batch_size = 32
-image_size = 256
 X_in = tf.placeholder(dtype=tf.float32, shape=[None, image_size, image_size], name='X')
 Y    = tf.placeholder(dtype=tf.float32, shape=[None, image_size, image_size], name='Y')
 Y_flat = tf.reshape(Y, shape=[-1, image_size * image_size])
@@ -121,8 +116,6 @@ sess.run(tf.global_variables_initializer())
 
 
 for i in range(20000):
-    #batch = [np.reshape(b, [image_size, image_size]) for b in mnist.train.next_batch(batch_size=batch_size)[0]]
-    #batch = [np.reshape(b, [image_size, image_size]) for b in next_batch(batch_size, segmentierung_liste, labels)[0]]
     data = next_batch(batch_size, segmentierung_liste, labels)[0]
     label = next_batch(batch_size, segmentierung_liste, labels)[1]
     data = data.reshape([batch_size, image_size, image_size])
@@ -165,17 +158,18 @@ for j in range(500):
         fac= 0.9
         img[img < fac] = 0
         img[img >=(1-fac)] = 1
-        #img = scipy.misc.imresize(img,(512, 512), interp='nearest')
         img = cv2.medianBlur(img, 3)
         #print(i)
         plt.imshow(img, cmap='gray')
-        #if np.count_nonzero(img == 0) <=4:
-        #    continue
-        #print(np.unique(img))
+        
+        #skip labels, which don't contain tumor label
         if 255 not in np.unique(img):
             continue
-        #plt.imshow(img, cmap='gray')
+            
+        #show progress
         print(i)
+
+        #save image
         imageio.imwrite(os.path.join(orderedFiless, "vae"+str(j)+str(i)+".png"),img, "png")
 
     
